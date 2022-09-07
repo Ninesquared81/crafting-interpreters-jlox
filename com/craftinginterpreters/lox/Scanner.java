@@ -29,6 +29,7 @@ public class Scanner {
         keywords.put("var", VAR);
         keywords.put("while", WHILE);
     }
+
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
     private int start = 0;
@@ -50,7 +51,7 @@ public class Scanner {
         return tokens;
     }
 
-    private  void scanToken() {
+    private void scanToken() {
         char c = advance();
         switch (c) {
             case '(':
@@ -99,6 +100,20 @@ public class Scanner {
                 if (match('/')) {
                     // A comment goes until the end of the line.
                     while (peek() != '\n' && !isAtEnd()) advance();
+                } else if (match('*')) {
+                    // The nesting level gracefully handles being inside a comment.
+                    for (int commentNestingLevel = 1; commentNestingLevel > 0 && !isAtEnd(); advance()) {
+                        if (peek() == '*' && peekNext() == '/') {
+                            // Consume the '*'.
+                            advance();
+                            // We're outwith the innermost comment.
+                            commentNestingLevel--;
+                        } else if (peek() == '/' && peekNext() == '*') {
+                            advance();
+                            // Enter a nested comment.
+                            commentNestingLevel++;
+                        }
+                    }
                 } else {
                     addToken(SLASH);
                 }
