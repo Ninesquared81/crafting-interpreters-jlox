@@ -4,7 +4,7 @@ class Interpreter implements Expr.Visitor<Object> {
     void interpret(Expr expression) {
         try {
             Object value = evaluate(expression);
-            System.out.println(stingify(value));
+            System.out.println(stringify(value));
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
@@ -22,7 +22,7 @@ class Interpreter implements Expr.Visitor<Object> {
         return evaluate(expr.right);
     }
     @Override
-    public  Object visitBinaryExpr(Expr.Binary expr) {
+    public Object visitBinaryExpr(Expr.Binary expr) {
         Object left = evaluate(expr.left);
         Object right = evaluate(expr.right);
 
@@ -64,7 +64,7 @@ class Interpreter implements Expr.Visitor<Object> {
                 }
 
                 if (left instanceof String || right instanceof String) {
-                    return left + (String)right;
+                    return stringify(left) + stringify(right);
                 }
 
                 throw new RuntimeError(
@@ -136,7 +136,7 @@ class Interpreter implements Expr.Visitor<Object> {
         return a.equals(b);
     }
 
-    private String stingify(Object object) {
+    private String stringify(Object object) {
         if (object == null) return "nil";
 
         if (object instanceof Double) {
