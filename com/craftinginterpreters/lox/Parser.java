@@ -42,7 +42,8 @@ class Parser {
         if (match(QUESTION_MARK)) {
             Expr left = conditional();
             if (!match(COLON)) {
-                throw error(peek(), "Expect ':'");
+                throw error(peek(), "Expect" +
+                        " ':'");
             }
             Expr right = conditional();
             expr = new Expr.Conditional(expr, left, right);
