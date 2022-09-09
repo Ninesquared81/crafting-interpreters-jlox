@@ -68,24 +68,42 @@ class Parser {
     }
 
     private Expr comma() {
-        Expr expr = conditional();
+        Expr expr = assignment();
         while (match(COMMA)) {
             Token operator = previous();
-            Expr right = conditional();
+            Expr right = assignment();
             expr = new Expr.Binary(expr, operator, right);
         }
 
         return expr;
     }
 
+    private Expr assignment() {
+        Expr expr = conditional();
+
+        if (match(EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable)expr).name;
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
+        }
+
+        return  expr;
+    }
+
     private Expr conditional() {
         Expr expr = equality();
 
         if (match(QUESTION_MARK)) {
-            Expr left = conditional();
+            // Parse left (middle) as if it is parenthesized.
+            Expr left = expression();
             if (!match(COLON)) {
-                throw error(peek(), "Expect" +
-                        " ':'");
+                throw error(peek(), "Expect ':'");
             }
             Expr right = conditional();
             expr = new Expr.Conditional(expr, left, right);
