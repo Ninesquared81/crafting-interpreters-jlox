@@ -69,6 +69,14 @@ public class Lox {
                 .map(token -> token.type)
                 .toList()
                 .lastIndexOf(TokenType.SEMICOLON);
+        int whereRightBrace = tokens.stream()
+                .map(token -> token.type)
+                .toList()
+                .lastIndexOf(TokenType.RIGHT_BRACE);
+        if (whereSemicolon < whereRightBrace) {
+            runStmt(tokens);
+            return;
+        }
         if (whereSemicolon >= 0) {
             int size = tokens.size();
             tokensStmt = tokens.subList(0, whereSemicolon + 1);
