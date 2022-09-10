@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Lox {
@@ -38,10 +39,10 @@ public class Lox {
         BufferedReader reader = new BufferedReader(input);
 
         for (;;) {
-            System.out.print("> ");
+            System.out.print("[>]: ");
             String line = reader.readLine();
             if (line == null) break;
-            run(line);
+            runLine(line);
             hadError = false;
         }
     }
@@ -56,6 +57,51 @@ public class Lox {
         if (hadError) return;
 
         interpreter.interpret(statements);
+    }
+
+    private static void runLine(String source) {
+        Scanner scanner = new Scanner(source);
+
+        List<Token> tokens = scanner.scanTokens();
+        List<Token> tokensStmt, tokensExpr;
+
+        int whereSemicolon = tokens.stream()
+                .map(token -> token.type)
+                .toList()
+                .lastIndexOf(TokenType.SEMICOLON);
+        if (whereSemicolon >= 0) {
+            int size = tokens.size();
+            tokensStmt = tokens.subList(0, whereSemicolon + 1);
+            tokensExpr = tokens.subList(whereSemicolon + 1, size);
+        } else {
+            tokensStmt = new ArrayList<>();
+            tokensExpr = tokens;
+        }
+        if (!tokensStmt.isEmpty() && tokensStmt.get(tokensStmt.size() - 1).type != TokenType.EOF) {
+            tokensStmt = new ArrayList<>(tokensStmt);
+            tokensStmt.add(new Token(TokenType.EOF, "", null, 1));
+        }
+
+        runStmt(tokensStmt);
+        runExpr(tokensExpr);
+    }
+
+    private static void runStmt(List<Token> tokensStmt) {
+        if (tokensStmt.size() <= 1) return;
+
+        Parser parserStmt = new Parser(tokensStmt);
+        List<Stmt> statements = parserStmt.parse();
+        if (hadError) return;
+        interpreter.interpret(statements);
+    }
+
+    private static void runExpr(List<Token> tokensExpr) {
+        if (tokensExpr.size() <= 1) return;
+
+        Parser parserExpr = new Parser(tokensExpr);
+        Expr expression = parserExpr.parseExpression();
+        if (hadError) return;
+        interpreter.interpret(expression);
     }
 
     static void error(int line, String message) {

@@ -23,6 +23,15 @@ class Parser {
         return statements;
     }
 
+    Expr parseExpression() {
+        try {
+            return expression();
+        } catch (ParseError error) {
+            synchronize();
+            return null;
+        }
+    }
+
     private Expr expression() {
         return comma();
     }
