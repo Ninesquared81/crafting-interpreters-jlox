@@ -11,12 +11,19 @@ class AstPrinter implements Expr.Visitor<String>{
     }
 
     @Override
-    public String visitConditionalExpr(Expr.Conditional expr) {
-        return parenthesize("?:", expr.condition, expr.left, expr.right);
-    }
-    @Override
     public String visitBinaryExpr(Expr.Binary expr) {
         return parenthesize(expr.operator.lexeme, expr.left, expr.right);
+    }
+
+    @Override
+    public String visitCallExpr(Expr.Call expr) {
+        Expr[] arguments = expr.arguments.toArray(new Expr[0]);
+        return parenthesize(expr.callee.toString(), arguments);
+    }
+
+    @Override
+    public String visitConditionalExpr(Expr.Conditional expr) {
+        return parenthesize("?:", expr.condition, expr.left, expr.right);
     }
 
     @Override
