@@ -3,6 +3,9 @@ package com.craftinginterpreters.lox;
 import java.util.List;
 
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+    private static class BreakSignal extends RuntimeException {}
+    private static class ContinueSignal extends RuntimeException {}
+
     private Environment environment = new Environment();
 
     void interpret(List<Stmt> statements) {
@@ -47,8 +50,30 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
     @Override
+    public Void visitBreakStmt(Stmt.Break stmt) {
+        // Signal that we hit a break statement (handled by the loop).
+        throw new BreakSignal();
+    }
+    @Override
+    public Void visitContinueStmt(Stmt.Continue stmt) {
+        throw new ContinueSignal();
+    }
+    @Override
+    public Void visitEmptyStmt(Stmt.Empty stmt) {
+        return null;
+    }
+    @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.expression);
+        return null;
+    }
+    @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        if (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.thenBranch);
+        } else if (stmt.elseBranch != null) {
+            execute(stmt.elseBranch);
+        }
         return null;
     }
     @Override
@@ -65,6 +90,20 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
 
         environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        while (isTruthy(evaluate(stmt.condition))) {
+            try {
+                execute(stmt.body);
+            } catch (BreakSignal signal) {
+                // If a break statement was reached, break
+                break;
+            } catch (ContinueSignal signal) {
+                continue;
+            }
+        }
         return null;
     }
     @Override
@@ -156,6 +195,19 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
         return expr.value;
+    }
+
+    @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        Object left = evaluate(expr.left);
+
+        if (expr.operator.type == TokenType.OR) {
+            if (isTruthy(left)) return left;
+        } else {
+            if (!isTruthy(left)) return left;
+        }
+
+        return evaluate(expr.right);
     }
 
     @Override

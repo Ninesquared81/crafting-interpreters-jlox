@@ -2,6 +2,7 @@ package com.craftinginterpreters.tool;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,18 +15,24 @@ public class GenerateAst {
         String outputDir = args[0];
         defineAst(outputDir, "Expr", Arrays.asList(
                 "Assign : Token name, Expr value",
-                "Conditional : Expr condition, Expr left, Expr right",
                 "Binary : Expr left, Token operator, Expr right",
+                "Conditional : Expr condition, Expr left, Expr right",
                 "Grouping : Expr expression",
                 "Literal : Object value",
+                "Logical : Expr left, Token operator, Expr right",
                 "Unary : Token operator, Expr right",
                 "Variable : Token name"
         ));
 
         defineAst(outputDir, "Stmt", Arrays.asList(
                 "Block : List<Stmt> statements",
+                "Break",
+                "Continue",
+                "Empty",
                 "Expression : Expr expression",
+                "If : Expr condition, Stmt thenBranch, Stmt elseBranch",
                 "Print : Expr expression",
+                "While : Expr condition, Stmt body",
                 "Var : Token name, Expr initializer"
         ));
     }
@@ -43,8 +50,12 @@ public class GenerateAst {
 
             // The AST classes.
             for (String type : types) {
-                String className = type.split(":")[0].trim();
-                String fields = type.split(":")[1].trim();
+                List<String> splitResult = new ArrayList<>(Arrays.asList(type.split(":")));
+                splitResult.add("");  // Ensure the length of the list is at least 2.
+
+                String className = splitResult.get(0).trim();
+                String fields = splitResult.get(1).trim();
+
                 defineType(writer, baseName, className, fields);
             }
 
@@ -71,29 +82,46 @@ public class GenerateAst {
     private static void defineType(PrintWriter writer, String baseName, String className, String fieldList) {
         writer.println("    static class " + className + " extends " + baseName + " {");
 
+        if (!fieldList.isEmpty()) {
+            printConstructor(writer, className, fieldList);
+            writer.println();
+        }
+
+        printAcceptMethod(writer, baseName, className);
+
+        if (!fieldList.isEmpty()) {
+            writer.println();
+            printFields(writer, fieldList);
+        }
+
+        writer.println("    }");
+    }
+
+    private static void printConstructor(PrintWriter writer, String className, String fieldList) {
         // Constructor.
         writer.println("        " + className + "(" + fieldList + ") {");
         String[] fields = fieldList.split(", ");
-        for (String field: fields) {
+        for (String field : fields) {
             String name = field.split(" ")[1];
             writer.println("            this." + name + " = " + name + ";");
         }
 
         writer.println("        }");
+    }
 
+    private static void printAcceptMethod(PrintWriter writer, String baseName, String className) {
         // Visitor pattern.
-        writer.println();
         writer.println("        @Override");
         writer.println("        <R> R accept(Visitor<R> visitor) {");
         writer.println("            return visitor.visit" + className + baseName + "(this);");
         writer.println("        }");
+    }
 
+    private static void printFields(PrintWriter writer, String fieldList) {
         // Fields.
-        writer.println();
+        String[] fields = fieldList.split(", ");
         for (String field : fields) {
             writer.println("        final " + field + ";");
         }
-
-        writer.println("    }");
     }
 }
