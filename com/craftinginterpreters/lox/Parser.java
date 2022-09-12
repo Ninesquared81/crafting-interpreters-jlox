@@ -41,7 +41,14 @@ class Parser {
 
     private Stmt declaration() {
         try {
-            if (match(FUN)) return function("function");
+            if (match(FUN)) {
+                if (check(LEFT_PAREN)) {
+                    Expr expr = functionExpression();
+                    consume(SEMICOLON, "Expect ';' after anonymous function expression.");
+                    return new Stmt.Expression(expr);
+                }
+                return function("function");
+            }
             if (match(VAR)) return varDeclaration();
             return statement();
         } catch (ParseError error) {
@@ -198,8 +205,16 @@ class Parser {
     }
 
     private Stmt.Function function(String kind) {
-        Token name = consume(IDENTIFIER, "Expect " + kind + "name.");
+        Token keyword = previous();
+
+        Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
         consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+        Expr.Function functionExpr = functionContent(kind, keyword);
+
+        return new Stmt.Function(name, functionExpr.params, functionExpr.body);
+    }
+
+    private Expr.Function functionContent(String kind, Token keyword) {
         List<Token> parameters = new ArrayList<>();
         if (!check(RIGHT_PAREN)) {
             do {
@@ -216,7 +231,7 @@ class Parser {
         List<Stmt> body = block();
         if (kind.equals("function")) functionNestingLevel--;
 
-        return new Stmt.Function(name, parameters, body);
+        return new Expr.Function(keyword, parameters, body);
     }
 
     private List<Stmt> block() {
@@ -396,6 +411,9 @@ class Parser {
             return new Expr.Literal(previous().literal);
         }
 
+        if (match(FUN)) {
+            return functionExpression();
+        }
         if (match(IDENTIFIER)) {
             return new Expr.Variable(previous());
         }
@@ -407,6 +425,12 @@ class Parser {
         }
 
         throw error(peek(), "Expect expression.");
+    }
+
+    private Expr.Function functionExpression() {
+        Token keyword = previous();
+        consume(LEFT_PAREN, "Expect '(' after 'fun' in expression.");
+        return functionContent("function", keyword);
     }
 
     private boolean match(TokenType... types) {
