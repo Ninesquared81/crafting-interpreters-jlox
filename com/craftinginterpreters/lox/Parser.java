@@ -10,8 +10,6 @@ class Parser {
 
     private final List<Token> tokens;
     private int current = 0;
-    private int loopNestingLevel = 0;
-    private int functionNestingLevel = 0;
 
     Parser(List<Token> tokens) {
         this.tokens = tokens;
@@ -73,8 +71,6 @@ class Parser {
 
     private Stmt continueStatement() {
         Token keyword = previous();
-
-        if (loopNestingLevel <= 0) throw error(keyword, "Continue statement outside loop.");
         consume(SEMICOLON, "Expect ';' after 'continue'.");
 
         return new Stmt.Continue(keyword);
@@ -82,8 +78,6 @@ class Parser {
 
     private Stmt breakStatement() {
         Token keyword = previous();
-
-        if (loopNestingLevel <= 0) throw error(keyword, "Break statement outside loop.");
         consume(SEMICOLON, "Expect ';' after 'break'.");
 
         return new Stmt.Break(keyword);
@@ -117,9 +111,7 @@ class Parser {
         }
         consume(RIGHT_PAREN, "Expect ')' after for clauses.");
 
-        loopNestingLevel++;
         Stmt body = statement();
-        loopNestingLevel--;
 
         if (increment != null) {
             body = new Stmt.Block(
@@ -168,9 +160,6 @@ class Parser {
         }
 
         consume(SEMICOLON, "Expect ';' after return value.");
-        if (functionNestingLevel <= 0) {
-            throw error(keyword, "Return statement outside function body.");
-        }
         return new Stmt.Return(keyword, value);
     }
 
@@ -191,10 +180,8 @@ class Parser {
         Expr condition = expression();
         consume(RIGHT_PAREN, "Expect ')' after condition.");
 
-        loopNestingLevel++;
         Stmt body = statement();
-        loopNestingLevel--;
-
+        
         return new Stmt.While(condition, body);
     }
 
@@ -205,16 +192,13 @@ class Parser {
     }
 
     private Stmt.Function function(String kind) {
-        Token keyword = previous();
-
         Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
         consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
-        Expr.Function functionExpr = functionContent(kind, keyword);
 
-        return new Stmt.Function(name, functionExpr.params, functionExpr.body);
+        return functionContent(kind, name);
     }
 
-    private Expr.Function functionContent(String kind, Token keyword) {
+    private Stmt.Function functionContent(String kind, Token name) {
         List<Token> parameters = new ArrayList<>();
         if (!check(RIGHT_PAREN)) {
             do {
@@ -227,11 +211,9 @@ class Parser {
         consume(RIGHT_PAREN, "Expect ')' after parameters.");
         consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
 
-        if (kind.equals("function")) functionNestingLevel++;
         List<Stmt> body = block();
-        if (kind.equals("function")) functionNestingLevel--;
 
-        return new Expr.Function(keyword, parameters, body);
+        return new Stmt.Function(name, parameters, body);
     }
 
     private List<Stmt> block() {
@@ -430,7 +412,9 @@ class Parser {
     private Expr.Function functionExpression() {
         Token keyword = previous();
         consume(LEFT_PAREN, "Expect '(' after 'fun' in expression.");
-        return functionContent("function", keyword);
+        Stmt.Function function = functionContent("function", null);
+
+        return new Expr.Function(keyword, function.params, function.body);
     }
 
     private boolean match(TokenType... types) {
