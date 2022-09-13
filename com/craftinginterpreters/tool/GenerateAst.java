@@ -2,6 +2,7 @@ package com.craftinginterpreters.tool;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -19,9 +20,12 @@ public class GenerateAst {
                 "Call : Expr callee, Token paren, List<Expr> arguments",
                 "Conditional : Expr condition, Expr left, Expr right",
                 "Function : Token keyword, List<Token> params, List<Stmt> body",
+                "Get : Expr object, Token name",
                 "Grouping : Expr expression",
                 "Literal : Object value",
                 "Logical : Expr left, Token operator, Expr right",
+                "Set : Expr object, Token name, Expr value",
+                "This : Token keyword",
                 "Unary : Token operator, Expr right",
                 "Variable : Token name"
         ));
@@ -29,6 +33,7 @@ public class GenerateAst {
         defineAst(outputDir, "Stmt", Arrays.asList(
                 "Block : List<Stmt> statements",
                 "Break : Token keyword",
+                "Class : Token name, List<Stmt.Function> methods",
                 "Continue : Token keyword",
                 "Empty",
                 "Expression : Expr expression",
@@ -43,7 +48,7 @@ public class GenerateAst {
 
     private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {
         String path = outputDir + "/" + baseName + ".java";
-        try (PrintWriter writer = new PrintWriter(path, "UTF-8")) {
+        try (PrintWriter writer = new PrintWriter(path, StandardCharsets.UTF_8)) {
             writer.println("package com.craftinginterpreters.lox;");
             writer.println();
             writer.println("import java.util.List;");
