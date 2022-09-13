@@ -4,15 +4,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import static com.craftinginterpreters.lox.ResolutionErrorType.*;
 
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
+    private final ErrorHandler errorHandler;
     private final Stack<Map<String, Boolean>> scopes = new Stack<>();
     private FunctionType currentFunction = FunctionType.NONE;
     private LoopType currentLoop = LoopType.NONE;
 
-    Resolver(Interpreter interpreter) {
+    Resolver(Interpreter interpreter, ErrorHandler errorHandler) {
         this.interpreter = interpreter;
+        this.errorHandler = errorHandler;
     }
 
     private enum FunctionType {
@@ -42,7 +45,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitBreakStmt(Stmt.Break stmt) {
         if (currentLoop == LoopType.NONE) {
-            Lox.error(stmt.keyword, "Break statement outside loop.");
+            errorHandler.handleResolutionError(
+                    BREAK_OUTSIDE_LOOP, stmt.keyword,
+                    "Break statement outside loop."
+            );
         }
         return null;
     }
@@ -50,7 +56,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitContinueStmt(Stmt.Continue stmt) {
         if (currentLoop == LoopType.NONE) {
-            Lox.error(stmt.keyword, "Continue statement outside loop.");
+            errorHandler.handleResolutionError(
+                    CONTINUE_OUTSIDE_LOOP, stmt.keyword,
+                    "Continue statement outside loop."
+            );
         }
         return null;
     }
@@ -91,7 +100,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitReturnStmt(Stmt.Return stmt) {
         if (currentFunction == FunctionType.NONE) {
-            Lox.error(stmt.keyword, "Can't return from top-level code.");
+            errorHandler.handleResolutionError(
+                    RETURN_OUTSIDE_FUNCTION, stmt.keyword,
+                    "Can't return from top-level code."
+            );
         }
 
         if (stmt.value != null) {
@@ -189,7 +201,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitVariableExpr(Expr.Variable expr) {
         if (!scopes.isEmpty() && scopes.peek().get(expr.name.lexeme) == Boolean.FALSE) {
-            Lox.error(expr.name, "Can't read local variable in its own initializer.");
+            errorHandler.handleResolutionError(
+                    VAR_INIT_SELF_REFER, expr.name,
+                    "Can't read local variable in its own initializer."
+            );
         }
 
         resolveLocal(expr, expr.name);

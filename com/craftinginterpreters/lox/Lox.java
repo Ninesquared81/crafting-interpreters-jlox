@@ -27,7 +27,7 @@ public class Lox {
 
     private static void runFile(String path) throws IOException {
         byte[] bytes = Files.readAllBytes(Paths.get(path));
-        run(new String(bytes, Charset.defaultCharset()));
+        run(new String(bytes, Charset.defaultCharset()), new StrictErrorHandler());
 
         // Indicate an error in the exit code.
         if (hadError) System.exit(65);
@@ -38,48 +38,34 @@ public class Lox {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
+        // TODO: Implement Repl error handler
+        ErrorHandler errorHandler = new StrictErrorHandler();
+
         for (;;) {
             System.out.print("[>]: ");
             String line = reader.readLine();
             if (line == null) break;
-            run(line);
+            run(line, errorHandler);
             hadError = false;
         }
     }
 
-    private static void run(String source) {
-        Scanner scanner = new Scanner(source);
+    private static void run(String source, ErrorHandler errorHandler) {
+        Scanner scanner = new Scanner(source, errorHandler);
         List<Token> tokens = scanner.scanTokens();
-        Parser parser = new Parser(tokens);
+        Parser parser = new Parser(tokens, errorHandler);
         List<Stmt> statements = parser.parse();
 
         // Stop if there was a syntax error.
         if (hadError) return;
 
-        Resolver resolver = new Resolver(interpreter);
+        Resolver resolver = new Resolver(interpreter, errorHandler);
         resolver.resolve(statements);
 
         // Stop if there was a resolution error.
         if (hadError) return;
 
         interpreter.interpret(statements);
-    }
-
-    static void error(int line, String message) {
-        report(line, "", message);
-    }
-
-    private static void report(int line, String where, String message) {
-        System.err.println("[line " + line + "] Error" + where + ": " + message);
-        hadError = true;
-    }
-
-    static void error(Token token, String message) {
-        if (token.type == TokenType.EOF) {
-            report(token.line, " at end", message);
-        } else {
-            report(token.line, " at '" + token.lexeme + "'", message);
-        }
     }
 
     static void runtimeError(RuntimeError error) {

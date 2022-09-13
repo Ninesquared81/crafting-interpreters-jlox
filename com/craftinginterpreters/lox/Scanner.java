@@ -34,12 +34,15 @@ public class Scanner {
 
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
+    private final ErrorHandler errorHandler;
+
     private int start = 0;
     private int current = 0;
     private int line = 1;
 
-    Scanner(String source) {
+    Scanner(String source, ErrorHandler errorHandler) {
         this.source = source;
+        this.errorHandler = errorHandler;
     }
 
     List<Token> scanTokens() {
@@ -147,7 +150,7 @@ public class Scanner {
                 } else if (isAlpha(c)) {
                     identifier();
                 } else {
-                    Lox.error(line, "Unexpected character.");
+                    errorHandler.handleScanError(line, "Unexpected character '" + c + "'.");
                 }
                 break;
         }
@@ -183,7 +186,7 @@ public class Scanner {
         }
 
         if (isAtEnd()) {
-            Lox.error(line, "Unterminated string.");
+            errorHandler.handleScanError(line, "Unterminated string.");
             return;
         }
 

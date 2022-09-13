@@ -4,15 +4,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import static com.craftinginterpreters.lox.TokenType.*;
+import static com.craftinginterpreters.lox.ParseRule.*;
 
 class Parser {
     private static class ParseError extends RuntimeException {}
 
     private final List<Token> tokens;
+    private final ErrorHandler errorHandler;
     private int current = 0;
 
-    Parser(List<Token> tokens) {
+    Parser(List<Token> tokens, ErrorHandler errorHandler) {
         this.tokens = tokens;
+        this.errorHandler = errorHandler;
     }
 
     List<Stmt> parse() {
@@ -42,7 +45,7 @@ class Parser {
             if (match(FUN)) {
                 if (check(LEFT_PAREN)) {
                     Expr expr = functionExpression();
-                    consume(SEMICOLON, "Expect ';' after anonymous function expression.");
+                    consume(FUNCTION_EXPR, SEMICOLON, "Expect ';' after anonymous function expression.");
                     return new Stmt.Expression(expr);
                 }
                 return function("function");
@@ -71,14 +74,14 @@ class Parser {
 
     private Stmt continueStatement() {
         Token keyword = previous();
-        consume(SEMICOLON, "Expect ';' after 'continue'.");
+        consume(BREAK_STMT, SEMICOLON, "Expect ';' after 'continue'.");
 
         return new Stmt.Continue(keyword);
     }
 
     private Stmt breakStatement() {
         Token keyword = previous();
-        consume(SEMICOLON, "Expect ';' after 'break'.");
+        consume(BREAK_STMT, SEMICOLON, "Expect ';' after 'break'.");
 
         return new Stmt.Break(keyword);
     }
@@ -88,7 +91,7 @@ class Parser {
     }
 
     private Stmt forStatement() {
-        consume(LEFT_PAREN, "Expect '(' after 'for'.");
+        consume(FOR_STMT, LEFT_PAREN, "Expect '(' after 'for'.");
 
         Stmt initializer;
         if (match(SEMICOLON)) {
@@ -103,13 +106,13 @@ class Parser {
         if (!check(SEMICOLON)) {
             condition = expression();
         }
-        consume(SEMICOLON, "Expect ';' after loop condition.");
+        consume(FOR_STMT, SEMICOLON, "Expect ';' after loop condition.");
 
         Expr increment = null;
         if (!check(RIGHT_PAREN)) {
             increment = expression();
         }
-        consume(RIGHT_PAREN, "Expect ')' after for clauses.");
+        consume(FOR_STMT, RIGHT_PAREN, "Expect ')' after for clauses.");
 
         Stmt body = statement();
 
@@ -133,9 +136,9 @@ class Parser {
     }
 
     private Stmt ifStatement() {
-        consume(LEFT_PAREN, "Expect '(' after 'if'.");
+        consume(IF_STMT, LEFT_PAREN, "Expect '(' after 'if'.");
         Expr condition = expression();
-        consume(RIGHT_PAREN, "Expect ')' after if condition.");
+        consume(IF_STMT, RIGHT_PAREN, "Expect ')' after if condition.");
 
         Stmt thenBranch = statement();
         Stmt elseBranch = null;
@@ -148,7 +151,7 @@ class Parser {
 
     private Stmt printStatement() {
         Expr value = expression();
-        consume(SEMICOLON, "Expect ';' after value.");
+        consume(PRINT_STMT, SEMICOLON, "Expect ';' after value.");
         return new Stmt.Print(value);
     }
 
@@ -159,41 +162,41 @@ class Parser {
             value = expression();
         }
 
-        consume(SEMICOLON, "Expect ';' after return value.");
+        consume(RETURN_STMT, SEMICOLON, "Expect ';' after return value.");
         return new Stmt.Return(keyword, value);
     }
 
     private Stmt varDeclaration() {
-        Token name = consume(IDENTIFIER, "Expect variable name.");
+        Token name = consume(VAR_STMT, IDENTIFIER, "Expect variable name.");
 
         Expr initializer = null;
         if (match(EQUAL)) {
             initializer = expression();
         }
 
-        consume(SEMICOLON, "Expect ';' after variable declaration.");
+        consume(VAR_STMT, SEMICOLON, "Expect ';' after variable declaration.");
         return new Stmt.Var(name, initializer);
     }
 
     private Stmt whileStatement() {
-        consume(LEFT_PAREN, "Expect '(' after 'while'.");
+        consume(WHILE_STMT, LEFT_PAREN, "Expect '(' after 'while'.");
         Expr condition = expression();
-        consume(RIGHT_PAREN, "Expect ')' after condition.");
+        consume(WHILE_STMT, RIGHT_PAREN, "Expect ')' after condition.");
 
         Stmt body = statement();
-        
+
         return new Stmt.While(condition, body);
     }
 
     private Stmt expressionStatement() {
         Expr expr = expression();
-        consume(SEMICOLON, "Expect ';' after expression.");
+        consume(EXPRESSION_STMT, SEMICOLON, "Expect ';' after expression.");
         return new Stmt.Expression(expr);
     }
 
     private Stmt.Function function(String kind) {
-        Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
-        consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+        Token name = consume(FUNCTION_STMT, IDENTIFIER, "Expect " + kind + " name.");
+        consume(FUNCTION_STMT, LEFT_PAREN, "Expect '(' after " + kind + " name.");
 
         return functionContent(kind, name);
     }
@@ -203,13 +206,13 @@ class Parser {
         if (!check(RIGHT_PAREN)) {
             do {
                 if (parameters.size() >= 255) {
-                    error(peek(), "Can't have more than 255 parameters.");
+                    error(FUNCTION_STMT, peek(), "Can't have more than 255 parameters.");
                 }
-                parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+                parameters.add(consume(FUNCTION_STMT, IDENTIFIER, "Expect parameter name."));
             } while (match(COMMA));
         }
-        consume(RIGHT_PAREN, "Expect ')' after parameters.");
-        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        consume(FUNCTION_STMT, RIGHT_PAREN, "Expect ')' after parameters.");
+        consume(FUNCTION_STMT, LEFT_BRACE, "Expect '{' before " + kind + " body.");
 
         List<Stmt> body = block();
 
@@ -223,7 +226,7 @@ class Parser {
             statements.add(declaration());
         }
 
-        consume(RIGHT_BRACE, "Expect '}' after block.");
+        consume(BLOCK_STMT, RIGHT_BRACE, "Expect '}' after block.");
         return statements;
     }
 
@@ -250,7 +253,7 @@ class Parser {
                 return new Expr.Assign(name, value);
             }
 
-            error(equals, "Invalid assignment target.");
+            error(ASSIGN_EXPR, equals, "Invalid assignment target.");
         }
 
         return  expr;
@@ -263,7 +266,7 @@ class Parser {
             // Parse left (middle) as if it is parenthesized.
             Expr left = expression();
             if (!match(COLON)) {
-                throw error(peek(), "Expect ':'");
+                throw error(CONDITIONAL_EXPR, peek(), "Expect ':'");
             }
             Expr right = conditional();
             expr = new Expr.Conditional(expr, left, right);
@@ -358,14 +361,14 @@ class Parser {
         if (!check(RIGHT_PAREN)) {
             do {
                 if (arguments.size() >= 255) {
-                    error(peek(), "Can't have more than 255 arguments.");
+                    error(CALL_EXPR, peek(), "Can't have more than 255 arguments.");
                 }
                 // Use equality to avoid getting commas in call confused with comma operator.
                 arguments.add(equality());
             } while (match(COMMA));
         }
 
-        Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
+        Token paren = consume(CALL_EXPR, RIGHT_PAREN, "Expect ')' after arguments.");
 
         return new Expr.Call(callee, paren, arguments);
     }
@@ -402,16 +405,16 @@ class Parser {
 
         if (match(LEFT_PAREN)) {
             Expr expr = expression();
-            consume(RIGHT_PAREN, "Expect ')' after expression.");
+            consume(GROUPING_EXPR, RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
         }
 
-        throw error(peek(), "Expect expression.");
+        throw error(PRIMARY_EXPR, peek(), "Expect expression.");
     }
 
     private Expr.Function functionExpression() {
         Token keyword = previous();
-        consume(LEFT_PAREN, "Expect '(' after 'fun' in expression.");
+        consume(FUNCTION_EXPR, LEFT_PAREN, "Expect '(' after 'fun' in expression.");
         Stmt.Function function = functionContent("function", null);
 
         return new Expr.Function(keyword, function.params, function.body);
@@ -427,10 +430,10 @@ class Parser {
         return false;
     }
 
-    private Token consume(TokenType type, String message) {
+    private Token consume(ParseRule rule, TokenType type, String message) {
         if (check(type)) return advance();
 
-        throw error(peek(), message);
+        throw error(rule, peek(), message);
     }
 
     private boolean check(TokenType type) {
@@ -455,8 +458,8 @@ class Parser {
         return tokens.get(current - 1);
     }
 
-    private ParseError error(Token token, String message) {
-        Lox.error(token, message);
+    private ParseError error(ParseRule rule, Token token, String message) {
+        errorHandler.handleParseError(rule, token, message);
         return new ParseError();
     }
 
