@@ -19,12 +19,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         NONE,
         METHOD,
         FUNCTION,
-        INITIALIZER
+        INITIALIZER,
     }
 
     private enum ClassType {
         NONE,
-        CLASS
+        CLASS,
     }
 
     private enum LoopType {
@@ -67,13 +67,19 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         beginScope();
         scopes.peek().put("this", true);
 
-        for (Stmt.Function method : stmt.methods) {
+        for (Stmt.Function method : stmt.instanceMethods) {
             FunctionType declaration = FunctionType.METHOD;
             if (method.name.lexeme.equals("init")) {
                 declaration = FunctionType.INITIALIZER;
             }
 
             resolveFunction(method, declaration);
+        }
+        for (Stmt.Function method : stmt.classMethods) {
+            if (method.name.lexeme.equals("init")) {
+                Lox.error(method.name, "Initializer method cannot be 'class'.");
+            }
+            resolveFunction(method, FunctionType.METHOD);
         }
 
         endScope();

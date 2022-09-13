@@ -86,16 +86,31 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
-        environment.define(stmt.name.lexeme, null);
+        String className = stmt.name.lexeme;
+        environment.define(className, null);
 
-        Map<String, LoxFunction> methods = new HashMap<>();
-        for (Stmt.Function method : stmt.methods) {
+        Map<String, LoxFunction> instanceMethods = new HashMap<>();
+        for (Stmt.Function method : stmt.instanceMethods) {
             LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
-            methods.put(method.name.lexeme, function);
+            instanceMethods.put(method.name.lexeme, function);
         }
 
-        LoxClass class_ = new LoxClass(stmt.name.lexeme, methods);
+        Map<String, LoxFunction> classMethods = new HashMap<>();
+        for (Stmt.Function method : stmt.classMethods) {
+            LoxFunction function = new LoxFunction(method, environment, false);
+            classMethods.put(method.name.lexeme, function);
+        }
+
+        LoxClass metaclass = null;
+        if (!classMethods.isEmpty()) {
+            metaclass = new LoxClass(null, classMethods, null);
+        }
+
+        LoxClass class_ = new LoxClass(className, instanceMethods, metaclass);
         environment.assign(stmt.name, class_);
+
+        if (metaclass != null) metaclass.set(stmt.name, class_);
+
         return null;
     }
 

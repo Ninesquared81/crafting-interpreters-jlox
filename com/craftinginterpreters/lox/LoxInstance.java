@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 class LoxInstance {
-    private LoxClass loxClass;
+    private LoxClass klass;
     private final Map<String, Object> fields = new HashMap<>();
 
-    LoxInstance(LoxClass loxClass) {
-        this.loxClass = loxClass;
+    LoxInstance(LoxClass klass) {
+        this.klass = klass;
     }
 
     Object get(Token name) {
@@ -16,8 +16,11 @@ class LoxInstance {
             return fields.get(name.lexeme);
         }
 
-        LoxFunction method = loxClass.findMethod(name.lexeme);
+        LoxFunction method = klass.findMethod(name.lexeme);
         if (method != null) return method.bind(this);
+
+        LoxFunction classMethod = klass.findClassMethod(name.lexeme);
+        if (classMethod != null) return classMethod.bind(klass);
 
         throw new RuntimeError(name, "Undefined property '" + name.lexeme + "'.");
     }
@@ -28,6 +31,10 @@ class LoxInstance {
 
     @Override
     public String toString() {
-        return "<inst " + loxClass.name + ">";
+        return "<inst " + klass.name + ">";
+    }
+
+    LoxClass getKlass() {
+        return klass;
     }
 }
