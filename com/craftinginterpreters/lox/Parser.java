@@ -430,6 +430,10 @@ class Parser {
         return false;
     }
 
+    private Token consume(TokenType type, String message) {
+        return consume(UNKNOWN, type, message);
+    }
+
     private Token consume(ParseRule rule, TokenType type, String message) {
         if (check(type)) return advance();
 

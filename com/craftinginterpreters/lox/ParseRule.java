@@ -11,5 +11,8 @@ enum ParseRule {
     FUNCTION_STMT, IF_STMT, PRINT_STMT, RETURN_STMT, VAR_STMT, WHILE_STMT,
 
     // Sugar.
-    FOR_STMT
+    FOR_STMT,
+
+    // Other.
+    UNKNOWN,
 }
