@@ -7,13 +7,15 @@ class LoxFunction implements LoxCallable {
     private final Environment closure;
 
     private final boolean isInitializer;
+    private final boolean isGetterMethod;
 
     LoxFunction(Stmt.Function declaration, Environment closure) {
-        this(declaration, closure, false);
+        this(declaration, closure, false, false);
     }
 
-    LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer) {
+    LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer, boolean isGetterMethod) {
         this.isInitializer = isInitializer;
+        this.isGetterMethod = isGetterMethod;
         this.declaration = declaration;
         this.closure = closure;
     }
@@ -21,7 +23,7 @@ class LoxFunction implements LoxCallable {
     LoxFunction bind(LoxInstance instance) {
         Environment environment = new Environment(closure);
         environment.define("this", instance);
-        return new LoxFunction(declaration, environment, isInitializer);
+        return new LoxFunction(declaration, environment, isInitializer, isGetterMethod);
     }
 
     @Override
@@ -49,5 +51,9 @@ class LoxFunction implements LoxCallable {
 
         if (isInitializer) return closure.getAt(0, "this");
         return null;
+    }
+
+    boolean isGetter() {
+        return isGetterMethod;
     }
 }

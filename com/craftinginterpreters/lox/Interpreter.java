@@ -91,13 +91,18 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         Map<String, LoxFunction> instanceMethods = new HashMap<>();
         for (Stmt.Function method : stmt.instanceMethods) {
-            LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
+            LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"), false);
+            instanceMethods.put(method.name.lexeme, function);
+        }
+        // Treat getters as instance methods
+        for (Stmt.Function method : stmt.getters) {
+            LoxFunction function = new LoxFunction(method, environment, false, true);
             instanceMethods.put(method.name.lexeme, function);
         }
 
         Map<String, LoxFunction> classMethods = new HashMap<>();
         for (Stmt.Function method : stmt.classMethods) {
-            LoxFunction function = new LoxFunction(method, environment, false);
+            LoxFunction function = new LoxFunction(method, environment, false, false);
             classMethods.put(method.name.lexeme, function);
         }
 
@@ -312,7 +317,13 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Object visitGetExpr(Expr.Get expr) {
         Object object = evaluate(expr.object);
         if (object instanceof LoxInstance) {
-            return ((LoxInstance)object).get(expr.name);
+            Object value = ((LoxInstance)object).get(expr.name);
+            if (!(value instanceof LoxFunction)) return value;
+
+            if (((LoxFunction) value).isGetter()) {
+                return ((LoxFunction) value).call(this, new ArrayList<>());
+            }
+            return value;
         }
 
         throw new RuntimeError(expr.name, "Only instances have properties");

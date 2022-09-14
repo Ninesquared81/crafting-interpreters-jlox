@@ -72,7 +72,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             if (method.name.lexeme.equals("init")) {
                 declaration = FunctionType.INITIALIZER;
             }
-
             resolveFunction(method, declaration);
         }
         for (Stmt.Function method : stmt.classMethods) {
@@ -80,6 +79,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
                 Lox.error(method.name, "Initializer method cannot be 'class'.");
             }
             resolveFunction(method, FunctionType.METHOD);
+        }
+        for (Stmt.Function method : stmt.getters) {
+            if (method.name.lexeme.equals("init")) {
+                Lox.error(method.name, "Initializer method cannot be getter.");
+            }
+            resolveGetterMethod(method);
         }
 
         endScope();
@@ -284,6 +289,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         }
         resolve(function.body);
         endScope();
+        currentFunction = enclosingFunction;
+    }
+
+    private void resolveGetterMethod(Stmt.Function function) {
+        FunctionType enclosingFunction = currentFunction;
+        currentFunction = FunctionType.METHOD;
+        beginScope();
+        resolve(function.body);
         currentFunction = enclosingFunction;
     }
 

@@ -62,18 +62,24 @@ class Parser {
 
         List<Stmt.Function> instanceMethods = new ArrayList<>();
         List<Stmt.Function> classMethods = new ArrayList<>();
+        List<Stmt.Function> getterMethods = new ArrayList<>();
 
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
             if (match(CLASS)) {
                 classMethods.add(function("method"));
             } else {
-                instanceMethods.add(function("method"));
+                Token methodName = consume(IDENTIFIER, "Expect method name.");
+                if (!match(LEFT_BRACE)) {
+                    instanceMethods.add(method(methodName));
+                } else {
+                    getterMethods.add(getterMethod(methodName));
+                }
             }
         }
 
         consume(RIGHT_BRACE, "Expect '}' after class body.");
 
-        return new Stmt.Class(name, instanceMethods, classMethods);
+        return new Stmt.Class(name, instanceMethods, classMethods, getterMethods);
     }
 
     private Stmt statement() {
@@ -219,6 +225,11 @@ class Parser {
         return functionContent(kind, name);
     }
 
+    private Stmt.Function method(Token name) {
+        consume(LEFT_PAREN, "Expect '(' after method name.");
+        return functionContent("method", name);
+    }
+
     private Stmt.Function functionContent(String kind, Token name) {
         List<Token> parameters = new ArrayList<>();
         if (!check(RIGHT_PAREN)) {
@@ -235,6 +246,11 @@ class Parser {
         List<Stmt> body = block();
 
         return new Stmt.Function(name, parameters, body);
+    }
+
+    private Stmt.Function getterMethod(Token name) {
+        List<Stmt> body = block();
+        return new Stmt.Function(name, new ArrayList<>(), body);
     }
 
     private List<Stmt> block() {
