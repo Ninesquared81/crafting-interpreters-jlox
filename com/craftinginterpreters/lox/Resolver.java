@@ -83,7 +83,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         }
         for (Stmt.Function method : stmt.classMethods) {
             if (method.name.lexeme.equals("init")) {
-                Lox.error(method.name, "Initializer method cannot be 'class'.");
+                errorHandler.handleResolutionError(STATIC_INIT, method.name, "Initializer method cannot be 'class'.");
             }
             resolveFunction(method, FunctionType.METHOD);
         }
@@ -149,7 +149,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
         if (stmt.value != null) {
             if (currentFunction == FunctionType.INITIALIZER) {
-                Lox.error(stmt.keyword, "Can't return a value from an initializer.");
+                errorHandler.handleResolutionError(RETURN_FROM_INIT, stmt.keyword,
+                        "Can't return a value from an initializer.");
             }
 
             resolve(stmt.value);
@@ -253,7 +254,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitThisExpr(Expr.This expr) {
         if (currentClass == ClassType.NONE) {
-            Lox.error(expr.keyword, "Can't use 'this' outside a class.");
+            errorHandler.handleResolutionError(THIS_OUTSIDE_CLASS, expr.keyword, "Can't use 'this' outside a class.");
             return null;
         }
 
