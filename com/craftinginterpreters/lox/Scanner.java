@@ -190,7 +190,7 @@ public class Scanner {
             return;
         }
 
-        advance(); // The closing ".
+        advance(); // The closing '"'.
 
         // Trim the surrounding quotes.
         String value = source.substring(start + 1, current - 1);
