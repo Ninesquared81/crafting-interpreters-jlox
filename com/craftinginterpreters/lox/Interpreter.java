@@ -37,6 +37,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             Lox.runtimeError(error);
         }
     }
+
     void interpret(Expr expression) {
         Object value = "";
         try {
@@ -46,15 +47,19 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         System.out.println(stringify(value));
     }
+
     private Object evaluate(Expr expr) {
         return expr.accept(this);
     }
+
     private void execute(Stmt stmt) {
         stmt.accept(this);
     }
+
     void resolve(Expr expr, int depth) {
         locals.put(expr, depth);
     }
+
     void executeBlock(List<Stmt> statements, Environment environment) {
         Environment previous = this.environment;
         try {
@@ -67,6 +72,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             this.environment = previous;
         }
     }
+
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         executeBlock(stmt.statements, new Environment(environment));
@@ -77,25 +83,60 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         // Signal that we hit a break statement (handled by the loop).
         throw new BreakSignal();
     }
+
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        String className = stmt.name.lexeme;
+        environment.define(className, null);
+
+        Map<String, LoxFunction> instanceMethods = new HashMap<>();
+        for (Stmt.Function method : stmt.instanceMethods) {
+            LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
+            instanceMethods.put(method.name.lexeme, function);
+        }
+
+        Map<String, LoxFunction> classMethods = new HashMap<>();
+        for (Stmt.Function method : stmt.classMethods) {
+            LoxFunction function = new LoxFunction(method, environment, false);
+            classMethods.put(method.name.lexeme, function);
+        }
+
+        LoxClass metaclass = null;
+        if (!classMethods.isEmpty()) {
+            metaclass = new LoxClass(null, classMethods, null);
+        }
+
+        LoxClass class_ = new LoxClass(className, instanceMethods, metaclass);
+        environment.assign(stmt.name, class_);
+
+        if (metaclass != null) metaclass.set(stmt.name, class_);
+
+        return null;
+    }
+
     @Override
     public Void visitContinueStmt(Stmt.Continue stmt) {
         throw new ContinueSignal();
     }
+
     @Override
     public Void visitEmptyStmt(Stmt.Empty stmt) {
         return null;
     }
+
     @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.expression);
         return null;
     }
+
     @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
         LoxFunction function = new LoxFunction(stmt, environment);
         environment.define(stmt.name.lexeme, function);
         return null;
     }
+
     @Override
     public Void visitIfStmt(Stmt.If stmt) {
         if (isTruthy(evaluate(stmt.condition))) {
@@ -105,12 +146,14 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         return null;
     }
+
     @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
         Object value = evaluate(stmt.expression);
         System.out.println(stringify(value));
         return null;
     }
+
     @Override
     public Void visitReturnStmt(Stmt.Return stmt) {
         Object value = null;
@@ -118,6 +161,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         throw new Return(value);
     }
+
     @Override
     public Void visitVarStmt(Stmt.Var stmt) {
         Object value = null;
@@ -128,6 +172,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         environment.define(stmt.name.lexeme, value);
         return null;
     }
+
     @Override
     public Void visitWhileStmt(Stmt.While stmt) {
         while (isTruthy(evaluate(stmt.condition))) {
@@ -142,6 +187,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         return null;
     }
+
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
@@ -155,6 +201,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         return value;
     }
+
     @Override
     public Object visitConditionalExpr(Expr.Conditional expr) {
         Object condition = evaluate(expr.condition);
@@ -165,6 +212,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         // If condition false.
         return evaluate(expr.right);
     }
+
     @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
         Object left = evaluate(expr.left);
@@ -230,6 +278,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         // Unreachable
         return null;
     }
+
     @Override
     public Object visitCallExpr(Expr.Call expr) {
         Object callee = evaluate(expr.callee);
@@ -253,10 +302,22 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         return function.call(this, arguments);
     }
+
     @Override
     public Object visitFunctionExpr(Expr.Function expr) {
         return new LoxAnonFunction(expr, environment);
     }
+
+    @Override
+    public Object visitGetExpr(Expr.Get expr) {
+        Object object = evaluate(expr.object);
+        if (object instanceof LoxInstance) {
+            return ((LoxInstance)object).get(expr.name);
+        }
+
+        throw new RuntimeError(expr.name, "Only instances have properties");
+    }
+
     @Override
     public Object visitGroupingExpr(Expr.Grouping expr) {
         return evaluate(expr.expression);
@@ -278,6 +339,24 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
 
         return evaluate(expr.right);
+    }
+
+    @Override
+    public Object visitSetExpr(Expr.Set expr) {
+        Object object = evaluate(expr.object);
+
+        if (!(object instanceof LoxInstance)) {
+            throw new RuntimeError(expr.name, "Only instances have fields.");
+        }
+
+        Object value = evaluate(expr.value);
+        ((LoxInstance)object).set(expr.name, value);
+        return value;
+    }
+
+    @Override
+    public Object visitThisExpr(Expr.This expr) {
+        return lookUpVariable(expr.keyword, expr);
     }
 
     @Override
