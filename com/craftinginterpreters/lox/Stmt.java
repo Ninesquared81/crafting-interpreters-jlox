@@ -42,11 +42,12 @@ abstract class Stmt {
         final Token keyword;
     }
     static class Class extends Stmt {
-        Class(Token name, List<Stmt.Function> instanceMethods, List<Stmt.Function> classMethods, List<Stmt.Function> getters) {
+        Class(Token name, List<Stmt.Function> instanceMethods, List<Stmt.Function> classMethods, List<Stmt.Function> getters, List<Stmt.Function> setters) {
             this.name = name;
             this.instanceMethods = instanceMethods;
             this.classMethods = classMethods;
             this.getters = getters;
+            this.setters = setters;
         }
 
         @Override
@@ -58,6 +59,7 @@ abstract class Stmt {
         final List<Stmt.Function> instanceMethods;
         final List<Stmt.Function> classMethods;
         final List<Stmt.Function> getters;
+        final List<Stmt.Function> setters;
     }
     static class Continue extends Stmt {
         Continue(Token keyword) {

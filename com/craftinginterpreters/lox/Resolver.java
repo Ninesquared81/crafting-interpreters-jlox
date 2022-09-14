@@ -20,6 +20,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         METHOD,
         FUNCTION,
         INITIALIZER,
+        SETTER,
     }
 
     private enum ClassType {
@@ -86,6 +87,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             }
             resolveGetterMethod(method);
         }
+        for (Stmt.Function method : stmt.setters) {
+            resolveSetterMethod(method);
+        }
 
         endScope();
 
@@ -143,6 +147,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         if (stmt.value != null) {
             if (currentFunction == FunctionType.INITIALIZER) {
                 Lox.error(stmt.keyword, "Can't return a value from an initializer.");
+            }
+            if (currentFunction == FunctionType.SETTER) {
+                Lox.error(stmt.keyword, "Can't return a value from a setter method.");
             }
 
             resolve(stmt.value);
@@ -293,11 +300,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     private void resolveGetterMethod(Stmt.Function function) {
-        FunctionType enclosingFunction = currentFunction;
-        currentFunction = FunctionType.METHOD;
-        beginScope();
-        resolve(function.body);
-        currentFunction = enclosingFunction;
+        resolveFunction(function, FunctionType.METHOD);
+    }
+
+    private void resolveSetterMethod(Stmt.Function function) {
+        resolveFunction(function, FunctionType.SETTER);
     }
 
     private void beginScope() {

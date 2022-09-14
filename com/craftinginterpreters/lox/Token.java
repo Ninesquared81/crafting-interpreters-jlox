@@ -16,4 +16,8 @@ public class Token {
     public String toString() {
         return type + " " + lexeme + " " + literal;
     }
+
+    Token rename(String name) {
+        return new Token(this.type, name, this.literal, this.line);
+    }
 }

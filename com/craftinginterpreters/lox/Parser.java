@@ -2,6 +2,7 @@ package com.craftinginterpreters.lox;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import static com.craftinginterpreters.lox.TokenType.*;
 
@@ -63,23 +64,26 @@ class Parser {
         List<Stmt.Function> instanceMethods = new ArrayList<>();
         List<Stmt.Function> classMethods = new ArrayList<>();
         List<Stmt.Function> getterMethods = new ArrayList<>();
+        List<Stmt.Function> setterMethods = new ArrayList<>();
 
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
             if (match(CLASS)) {
                 classMethods.add(function("method"));
             } else {
                 Token methodName = consume(IDENTIFIER, "Expect method name.");
-                if (!match(LEFT_BRACE)) {
-                    instanceMethods.add(method(methodName));
-                } else {
+                if (match(LEFT_BRACE)) {
                     getterMethods.add(getterMethod(methodName));
+                } else if (match(EQUAL)) {
+                    setterMethods.add(setterMethod(methodName));
+                } else {
+                    instanceMethods.add(method(methodName));
                 }
             }
         }
 
         consume(RIGHT_BRACE, "Expect '}' after class body.");
 
-        return new Stmt.Class(name, instanceMethods, classMethods, getterMethods);
+        return new Stmt.Class(name, instanceMethods, classMethods, getterMethods, setterMethods);
     }
 
     private Stmt statement() {
@@ -250,7 +254,23 @@ class Parser {
 
     private Stmt.Function getterMethod(Token name) {
         List<Stmt> body = block();
-        return new Stmt.Function(name, new ArrayList<>(), body);
+        return new Stmt.Function(name, Collections.emptyList(), body);
+    }
+
+    private Stmt.Function setterMethod(Token name) {
+        consume(LEFT_PAREN, "Expect '(' after '=' in setter method.");
+        Token parameter = consume(IDENTIFIER, "Expect parameter in setter method.");
+
+        if (check(COMMA)) throw error(peek(), "Setter method can only have 1 parameter.");
+
+        consume(RIGHT_PAREN, "Expect ')' after parameter in setter method.");
+        consume(LEFT_BRACE, "Expect '{' before method body.");
+
+        List<Stmt> body = block();
+
+        // Change name to avoid collision with a getter/method.
+        name = name.rename(name.lexeme + "=");
+        return new Stmt.Function(name, Collections.singletonList(parameter), body);
     }
 
     private List<Stmt> block() {

@@ -37,4 +37,14 @@ class LoxInstance {
     LoxClass getKlass() {
         return klass;
     }
+
+    LoxFunction getMethod(String name) {
+        LoxFunction method = klass.findMethod(name);
+        if (method != null) return method.bind(this);
+
+        method = klass.findClassMethod(name);
+        if (method != null) return method.bind(this);
+
+        return null;
+    }
 }

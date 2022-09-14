@@ -34,7 +34,7 @@ public class GenerateAst {
                 "Block : List<Stmt> statements",
                 "Break : Token keyword",
                 "Class : Token name, List<Stmt.Function> instanceMethods, List<Stmt.Function> classMethods," +
-                        " List<Stmt.Function> getters",
+                        " List<Stmt.Function> getters, List<Stmt.Function> setters",
                 "Continue : Token keyword",
                 "Empty",
                 "Expression : Expr expression",

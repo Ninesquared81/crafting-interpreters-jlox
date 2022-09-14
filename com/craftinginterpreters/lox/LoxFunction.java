@@ -3,19 +3,23 @@ package com.craftinginterpreters.lox;
 import java.util.List;
 
 class LoxFunction implements LoxCallable {
+    enum MethodType {
+        GETTER, SETTER, NORMAL
+    }
+
     private final Stmt.Function declaration;
     private final Environment closure;
 
     private final boolean isInitializer;
-    private final boolean isGetterMethod;
+    private final MethodType methodType;
 
     LoxFunction(Stmt.Function declaration, Environment closure) {
-        this(declaration, closure, false, false);
+        this(declaration, closure, false, MethodType.NORMAL);
     }
 
-    LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer, boolean isGetterMethod) {
+    LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer, MethodType methodType) {
         this.isInitializer = isInitializer;
-        this.isGetterMethod = isGetterMethod;
+        this.methodType = methodType;
         this.declaration = declaration;
         this.closure = closure;
     }
@@ -23,7 +27,7 @@ class LoxFunction implements LoxCallable {
     LoxFunction bind(LoxInstance instance) {
         Environment environment = new Environment(closure);
         environment.define("this", instance);
-        return new LoxFunction(declaration, environment, isInitializer, isGetterMethod);
+        return new LoxFunction(declaration, environment, isInitializer, methodType);
     }
 
     @Override
@@ -54,6 +58,10 @@ class LoxFunction implements LoxCallable {
     }
 
     boolean isGetter() {
-        return isGetterMethod;
+        return methodType == MethodType.GETTER;
+    }
+
+    boolean isSetter() {
+        return methodType == MethodType.SETTER;
     }
 }

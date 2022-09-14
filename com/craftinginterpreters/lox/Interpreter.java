@@ -1,9 +1,8 @@
 package com.craftinginterpreters.lox;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import com.craftinginterpreters.lox.LoxFunction.MethodType;
 
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private static class BreakSignal extends RuntimeException {}
@@ -91,18 +90,23 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         Map<String, LoxFunction> instanceMethods = new HashMap<>();
         for (Stmt.Function method : stmt.instanceMethods) {
-            LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"), false);
+            LoxFunction function = new LoxFunction(method, environment,
+                    method.name.lexeme.equals("init"), MethodType.NORMAL);
             instanceMethods.put(method.name.lexeme, function);
         }
         // Treat getters as instance methods
         for (Stmt.Function method : stmt.getters) {
-            LoxFunction function = new LoxFunction(method, environment, false, true);
+            LoxFunction function = new LoxFunction(method, environment, false, MethodType.GETTER);
+            instanceMethods.put(method.name.lexeme, function);
+        }
+        for (Stmt.Function method : stmt.setters) {
+            LoxFunction function = new LoxFunction(method, environment, false, MethodType.SETTER);
             instanceMethods.put(method.name.lexeme, function);
         }
 
         Map<String, LoxFunction> classMethods = new HashMap<>();
         for (Stmt.Function method : stmt.classMethods) {
-            LoxFunction function = new LoxFunction(method, environment, false, false);
+            LoxFunction function = new LoxFunction(method, environment, false, MethodType.NORMAL);
             classMethods.put(method.name.lexeme, function);
         }
 
@@ -321,8 +325,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             if (!(value instanceof LoxFunction)) return value;
 
             if (((LoxFunction) value).isGetter()) {
-                return ((LoxFunction) value).call(this, new ArrayList<>());
+                return ((LoxFunction) value).call(this, Collections.emptyList());
             }
+
             return value;
         }
 
@@ -361,7 +366,14 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
 
         Object value = evaluate(expr.value);
-        ((LoxInstance)object).set(expr.name, value);
+
+        // A setter has a "=" suffix.
+        LoxFunction setter = ((LoxInstance) object).getMethod(expr.name.lexeme + "=");
+        if (setter != null) {
+            setter.call(this, Collections.singletonList(value));
+        } else {
+            ((LoxInstance) object).set(expr.name, value);
+        }
         return value;
     }
 
