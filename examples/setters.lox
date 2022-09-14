@@ -1,0 +1,19 @@
+class Cracker {
+    init(crackerType) {
+        this.crackerType = crackerType;
+        this.cheeseType = nil;
+    }
+
+    cheese = (cheeseType) {
+        this.cheeseType = cheeseType;
+    }
+
+    show () {
+        print "I am " + this.cheeseType + " on a " + this.crackerType + " cracker.";
+    }
+}
+
+var cracker = Cracker("cream");
+cracker.cheese = "Gruyere";
+
+cracker.show();
