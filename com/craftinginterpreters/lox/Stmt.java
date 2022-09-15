@@ -42,8 +42,9 @@ abstract class Stmt {
         final Token keyword;
     }
     static class Class extends Stmt {
-        Class(Token name, List<Stmt.Function> instanceMethods, List<Stmt.Function> classMethods, List<Stmt.Function> getters, List<Stmt.Function> setters) {
+        Class(Token name, Expr.Variable superclass, List<Stmt.Function> instanceMethods, List<Stmt.Function> classMethods, List<Stmt.Function> getters, List<Stmt.Function> setters) {
             this.name = name;
+            this.superclass = superclass;
             this.instanceMethods = instanceMethods;
             this.classMethods = classMethods;
             this.getters = getters;
@@ -56,6 +57,7 @@ abstract class Stmt {
         }
 
         final Token name;
+        final Expr.Variable superclass;
         final List<Stmt.Function> instanceMethods;
         final List<Stmt.Function> classMethods;
         final List<Stmt.Function> getters;

@@ -40,11 +40,10 @@ class LoxInstance {
 
     LoxFunction getMethod(String name) {
         LoxFunction method = klass.findMethod(name);
-        if (method != null) return method.bind(this);
+        if (method == null) method = klass.findClassMethod(name);
 
-        method = klass.findClassMethod(name);
-        if (method != null) return method.bind(this);
+        if (method == null) return null;
 
-        return null;
+        return method.bind(this);
     }
 }
