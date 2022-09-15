@@ -1,0 +1,21 @@
+// Define with 'val'.
+val a = 9;
+print "a = " + a;
+
+// Must define with an initializer.
+// val b;  // error
+
+// Cannot reassign.
+// a = 4;  // error
+
+// Classes and functions are constants.
+class A {}
+fun hello() {
+    print "Hello, World!";
+}
+// A = nil;  // error
+// hello = "Hello";  // error
+
+// Can redefine with a val/var statement
+var a = "new";
+print a;
