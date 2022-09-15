@@ -8,7 +8,7 @@ class Cracker {
         this.cheeseType = cheeseType;
     }
 
-    show () {
+    show() {
         print "I am " + this.cheeseType + " on a " + this.crackerType + " cracker.";
     }
 }
