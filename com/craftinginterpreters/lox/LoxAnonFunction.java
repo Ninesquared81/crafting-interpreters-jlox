@@ -25,7 +25,7 @@ class LoxAnonFunction implements LoxCallable {
     public Object call(Interpreter interpreter, List<Object> arguments) {
         Environment environment = new Environment(closure);
         for (int i = 0; i < definition.params.size(); i++) {
-            environment.define(definition.params.get(i).lexeme, arguments.get(i));
+            environment.define(definition.params.get(i).lexeme, arguments.get(i), true);
         }
 
         try {

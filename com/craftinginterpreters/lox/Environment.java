@@ -4,8 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 class Environment {
+    private record ValueInfo(Object value, boolean isMutable) {}
     final Environment enclosing;
-    private final Map<String, Object> values = new HashMap<>();
+    private final Map<String, ValueInfo> values = new HashMap<>();
 
     Environment() {
         enclosing = null;
@@ -17,7 +18,7 @@ class Environment {
 
     Object get(Token name) {
         if (values.containsKey(name.lexeme)) {
-            return values.get(name.lexeme);
+            return values.get(name.lexeme).value;
         }
 
         if (enclosing != null) return enclosing.get(name);
@@ -27,7 +28,10 @@ class Environment {
 
     void assign(Token name, Object value) {
         if (values.containsKey(name.lexeme)) {
-            values.put(name.lexeme, value);
+            if (!values.get(name.lexeme).isMutable) {
+                throw new RuntimeError(name, "Cannot reassign constant.");
+            }
+            values.put(name.lexeme, new ValueInfo(value, true));
             return;
         }
 
@@ -39,8 +43,12 @@ class Environment {
         throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
     }
 
-    void define(String name, Object value) {
-        values.put(name, value);
+    void declare(String name, boolean isMutable) {
+        values.put(name, new ValueInfo(null, isMutable));
+    }
+
+    void define(String name, Object value, boolean isMutable) {
+        values.put(name, new ValueInfo(value, isMutable));
     }
 
     Environment ancestor(int distance) {
@@ -54,10 +62,14 @@ class Environment {
     }
 
     Object getAt(int distance, String name) {
-        return ancestor(distance).values.get(name);
+        return ancestor(distance).values.get(name).value;
     }
 
     void assignAt(int distance, Token name, Object value) {
-        ancestor(distance).values.put(name.lexeme, value);
+        Environment target = ancestor(distance);
+        if (!target.values.get(name.lexeme).isMutable) {
+            throw new RuntimeError(name, "Cannot reassign constant value.");
+        }
+        target.values.put(name.lexeme, new ValueInfo(value, true));
     }
 }

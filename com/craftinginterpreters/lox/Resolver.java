@@ -172,6 +172,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitValStmt(Stmt.Val stmt) {
+        declare(stmt.name);
+        resolve(stmt.initializer);
+        define(stmt.name);
+        return null;
+    }
+
+    @Override
     public Void visitVarStmt(Stmt.Var stmt) {
         declare(stmt.name);
         if (stmt.initializer != null) {

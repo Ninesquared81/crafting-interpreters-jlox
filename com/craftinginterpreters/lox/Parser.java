@@ -49,6 +49,7 @@ class Parser {
                 }
                 return function("function");
             }
+            if (match(VAL)) return valDefinition();
             if (match(VAR)) return varDeclaration();
             return statement();
         } catch (ParseError error) {
@@ -199,6 +200,14 @@ class Parser {
 
         consume(SEMICOLON, "Expect ';' after return value.");
         return new Stmt.Return(keyword, value);
+    }
+
+    private Stmt valDefinition() {
+        Token name = consume(IDENTIFIER, "Expect constant name.");
+        consume(EQUAL, "Expect initializer in constant definition.");
+        Expr initializer = expression();
+        consume(SEMICOLON, "Expect ';' after constant definition.");
+        return new Stmt.Val(name, initializer);
     }
 
     private Stmt varDeclaration() {

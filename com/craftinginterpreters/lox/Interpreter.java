@@ -24,7 +24,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
             @Override
             public String toString() { return "<native fn>"; }
-        });
+        }, false);
     }
 
     void interpret(List<Stmt> statements) {
@@ -94,11 +94,11 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
 
         String className = stmt.name.lexeme;
-        environment.define(className, null);
+        environment.declare(className, false);
 
         if (stmt.superclass != null) {
             environment = new Environment(environment);
-            environment.define("super", superclass);
+            environment.define("super", superclass, true);
         }
 
         Map<String, LoxFunction> instanceMethods = new HashMap<>();
@@ -134,7 +134,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             environment = environment.enclosing;
         }
 
-        environment.assign(stmt.name, class_);
+        environment.define(stmt.name.lexeme, class_, false);
 
         if (metaclass != null) metaclass.set(stmt.name, class_);
 
@@ -160,7 +160,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
         LoxFunction function = new LoxFunction(stmt, environment);
-        environment.define(stmt.name.lexeme, function);
+        environment.define(stmt.name.lexeme, function, false);
         return null;
     }
 
@@ -190,13 +190,20 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitValStmt(Stmt.Val stmt) {
+        Object value = evaluate(stmt.initializer);
+        environment.define(stmt.name.lexeme, value, false);
+        return null;
+    }
+
+    @Override
     public Void visitVarStmt(Stmt.Var stmt) {
         Object value = null;
         if (stmt.initializer != null) {
             value = evaluate(stmt.initializer);
         }
 
-        environment.define(stmt.name.lexeme, value);
+        environment.define(stmt.name.lexeme, value, true);
         return null;
     }
 
