@@ -1,0 +1,67 @@
+print "This is a number guessing game.";
+print "";
+print "Each round, the computer will generate a number between 1 and 20 which you have 5 attempts to guess.";
+print "The game ends when you run out of guesses or if you enter 'quit'.";
+print "";
+print "Good Luck!";
+print "";
+print "";
+
+fun generateNumber() {
+    return round(rand() * 19) + 1;
+}
+
+fun checkQuit(guess) {
+    return lowercase(stringify(guess)) == "quit";
+}
+
+fun run() {
+    var score = 0;
+    var guessesLeft;
+    var guess;
+    var target;
+    var distance;
+
+    for (;;) {
+        target = generateNumber();
+        for (guessesLeft = 5; guessesLeft > 0; guessesLeft = guessesLeft - 1) {
+            print "Guess a number";
+            input guess;
+
+            while (!isNumber(guess) or guess < 1 or guess > 20) {
+                if (checkQuit(guess)) return score;
+
+                if (!isNumber(guess)) {
+                    print "Your input '" + guess + "' is not a number.";
+                } else {
+                    print "Number " + guess + " not in range 1 <= n <= 20.";
+                }
+                input guess;
+            }
+
+            if (guess == target) {
+                print "Correct!";
+                score = score + guessesLeft;
+                break;
+            }
+
+            distance = abs(guess - target);
+            if (guess > target) {
+                print "Too big" + ((distance < 3) ? ", but close!" : "!");
+            } else {
+                print "Too small" + ((distance < 3) ? ", but close!" : "!");
+            }
+        }
+
+        if (guessesLeft <= 0) {
+            print "Bad Luck!";
+            return score;
+        }
+    }
+}
+
+var score = run();
+
+print "";
+print "Score = " + score + ".";
+print "Play again sometime!";
