@@ -100,6 +100,7 @@ class Parser {
         if (match(SEMICOLON)) return emptyStatement();
         if (match(FOR)) return forStatement();
         if (match(IF)) return ifStatement();
+        if (match(INPUT)) return inputStatement();
         if (match(PRINT)) return printStatement();
         if (match(RETURN)) return returnStatement();
         if (match(WHILE)) return whileStatement();
@@ -183,6 +184,13 @@ class Parser {
         }
 
         return new Stmt.If(condition, thenBranch, elseBranch);
+    }
+
+    private Stmt inputStatement() {
+        Token keyword = previous();
+        Token varName = consume(IDENTIFIER, "Expect variable name after 'input'.");
+        consume(SEMICOLON, "Expect ';' after input variable.");
+        return new Stmt.Input(keyword, new Expr.Variable(varName));
     }
 
     private Stmt printStatement() {

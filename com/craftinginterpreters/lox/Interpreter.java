@@ -1,5 +1,8 @@
 package com.craftinginterpreters.lox;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 
 import com.craftinginterpreters.lox.LoxFunction.MethodType;
@@ -11,6 +14,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     final Environment globals = new Environment();
     private Environment environment = globals;
     private final Map<Expr, Integer> locals = new HashMap<>();
+
+    private final InputStreamReader input = new InputStreamReader(System.in);
+    private final BufferedReader reader = new BufferedReader(input);
 
     Interpreter() {
         globals.define("clock", new LoxCallable() {
@@ -171,6 +177,19 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         } else if (stmt.elseBranch != null) {
             execute(stmt.elseBranch);
         }
+        return null;
+    }
+
+    @Override
+    public Void visitInputStmt(Stmt.Input stmt) {
+        String input;
+        try {
+            input = reader.readLine();
+        } catch (IOException e) {
+            throw new RuntimeError(stmt.keyword, "There was an error reading input.");
+        }
+        Object value = parseInput(input);
+        environment.assign(stmt.variable.name, value);
         return null;
     }
 
@@ -450,6 +469,18 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         } else {
             return globals.get(name);
         }
+    }
+
+    private Object parseInput(String input) {
+        if (input.equals("nil")) return null;
+        if (input.equals("true")) return Boolean.TRUE;
+        if (input.equals("false")) return Boolean.FALSE;
+        try {
+            return Double.parseDouble(input);
+        } catch (NumberFormatException ignored) {}
+
+        // If other checks fail, it's just a string.
+        return input;
     }
 
     private void checkNumberOperand(Token operator, Object operand) {

@@ -12,6 +12,7 @@ abstract class Stmt {
         R visitExpressionStmt(Expression stmt);
         R visitFunctionStmt(Function stmt);
         R visitIfStmt(If stmt);
+        R visitInputStmt(Input stmt);
         R visitPrintStmt(Print stmt);
         R visitReturnStmt(Return stmt);
         R visitValStmt(Val stmt);
@@ -125,6 +126,20 @@ abstract class Stmt {
         final Expr condition;
         final Stmt thenBranch;
         final Stmt elseBranch;
+    }
+    static class Input extends Stmt {
+        Input(Token keyword, Expr.Variable variable) {
+            this.keyword = keyword;
+            this.variable = variable;
+        }
+
+        @Override
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitInputStmt(this);
+        }
+
+        final Token keyword;
+        final Expr.Variable variable;
     }
     static class Print extends Stmt {
         Print(Expr expression) {
