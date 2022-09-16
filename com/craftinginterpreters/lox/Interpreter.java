@@ -23,18 +23,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private final BufferedReader reader = new BufferedReader(input);
 
     Interpreter() {
-        globals.define("clock", new LoxCallable() {
-            @Override
-            public int arity() { return 0; }
-
-            @Override
-            public Object call(Interpreter interpreter, List<Object> arguments) {
-                return (double)System.currentTimeMillis() / 1000.0;
-            }
-
-            @Override
-            public String toString() { return "<native fn>"; }
-        }, false);
+        for (var function: Natives.all.entrySet()) {
+            globals.define(function.getKey(), function.getValue(), false);
+        }
     }
 
     void interpret(List<Stmt> statements) {
