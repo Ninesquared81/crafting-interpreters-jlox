@@ -37,5 +37,97 @@ class Natives {
                 return Math.random();
             }
         });
+        all.put("round", new NativeFunction() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object number = arguments.get(0);
+                return Math.floor((Double) number + 0.5);
+            }
+        });
+        all.put("isNumber", new NativeFunction() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return arguments.get(0) instanceof Double;
+            }
+        });
+        all.put(("isString"), new NativeFunction() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return arguments.get(0) instanceof String;
+            }
+        });
+        all.put("abs", new NativeFunction() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object number = arguments.get(0);
+                return Math.abs((Double) number);
+            }
+        });
+        all.put("lowercase", new NativeFunction() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object string = arguments.get(0);
+                return ((String) string).toLowerCase();
+            }
+        });
+        all.put("uppercase", new NativeFunction() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object string = arguments.get(0);
+                return ((String) string).toUpperCase();
+            }
+        });
+        all.put("stringify", new NativeFunction() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                Object object = arguments.get(0);
+                if (object == null) return "nil";
+
+                if (object instanceof Double) {
+                    String text = object.toString();
+                    if (text.endsWith(".0")) {
+                        text = text.substring(0, text.length() - 2);
+                    }
+                    return text;
+                }
+
+                return object.toString();
+            }
+        });
     }
 }
